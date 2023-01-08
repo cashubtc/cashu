@@ -1,4 +1,4 @@
-Cashu NUTs (Notation, Usage, and Terminology)
+# Cashu NUTs (Notation, Usage, and Terminology)
 
 
 | Number   | Description                                                 | Wallets |
@@ -14,7 +14,8 @@ Cashu NUTs (Notation, Usage, and Terminology)
 
 
 [00]: 00.md
-[01]: 02.md
+[01]: 01.md
+[02]: 02.md
 [03]: 03.md
 [04]: 04.md
 [05]: 05.md
