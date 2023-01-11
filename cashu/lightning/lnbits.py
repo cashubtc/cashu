@@ -2,6 +2,7 @@ from os import getenv
 from typing import Dict, Optional
 
 import requests
+import base64
 
 from cashu.core.settings import LNBITS_ENDPOINT, LNBITS_KEY
 
@@ -51,13 +52,22 @@ class LNbitsWallet(Wallet):
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
     ) -> InvoiceResponse:
+        print("lnbits description_hash:", description_hash)
+        
         data: Dict = {"out": False, "amount": amount}
+        
+        print('description_hash', description_hash)
+        
+        # description_hash = None
         if description_hash:
-            data["description_hash"] = description_hash.hex()
+            # This the fix - the decription_hash needs to be decoded
+            data["description_hash"] = description_hash.decode() 
         if unhashed_description:
             data["unhashed_description"] = unhashed_description.hex()
-
+        
         data["memo"] = memo or ""
+
+        
         try:
             r = self.s.post(url=f"{self.endpoint}/api/v1/payments", json=data)
         except:
@@ -68,9 +78,11 @@ class LNbitsWallet(Wallet):
             None,
             None,
         )
-
+        
         data = r.json()
+        
         checking_id, payment_request = data["checking_id"], data["payment_request"]
+        
 
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 

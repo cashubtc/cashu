@@ -109,6 +109,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+data/mint
 
 # Spyder project settings
 .spyderproject

@@ -230,10 +230,13 @@ class LedgerAPI:
         assert len(keysets), Exception("did not receive any keysets")
         return keysets
 
-    def request_mint(self, amount):
+    def request_mint(self, amount,description_hash: Optional[bytes] = None):
         """Requests a mint from the server and returns Lightning invoice."""
+        if description_hash != None:
+            description_hash = description_hash.decode("utf-8")
+
         self.s = self._set_requests()
-        resp = self.s.get(self.url + "/mint", params={"amount": amount})
+        resp = self.s.get(self.url + "/mint", params={"amount": amount, "description_hash": description_hash})
         resp.raise_for_status()
         return_dict = resp.json()
         self.raise_on_error(return_dict)
@@ -405,18 +408,6 @@ class Wallet(LedgerAPI):
     @staticmethod
     def _get_proofs_per_keyset(proofs: List[Proof]):
         return {key: list(group) for key, group in groupby(proofs, lambda p: p.id)}
-
-    async def _get_proofs_per_minturl(self, proofs: List[Proof]):
-        ret = {}
-        for id in set([p.id for p in proofs]):
-            if id is None:
-                continue
-            keyset: WalletKeyset = await get_keyset(id=id, db=self.db)
-            if keyset.mint_url not in ret:
-                ret[keyset.mint_url] = [p for p in proofs if p.id == id]
-            else:
-                ret[keyset.mint_url].extend([p for p in proofs if p.id == id])
-        return ret
 
     async def request_mint(self, amount):
         invoice = super().request_mint(amount)

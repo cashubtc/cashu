@@ -3,7 +3,7 @@ Implementation of https://gist.github.com/phyro/935badc682057f418842c72961cf096c
 """
 
 import math
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Optional
 
 from loguru import logger
 
@@ -216,8 +216,9 @@ class Ledger:
         sum_outputs = sum(self._verify_amount(p.amount) for p in outs)
         assert sum_outputs - sum_inputs == 0
 
-    async def _request_lightning_invoice(self, amount: int):
+    async def _request_lightning_invoice(self, amount: int, description_hash: Optional[bytes] = None):
         """Returns an invoice from the Lightning backend."""
+
         error, balance = await self.lightning.status()
         if error:
             raise Exception(f"Lightning wallet not responding: {error}")
@@ -226,7 +227,7 @@ class Ledger:
             checking_id,
             payment_request,
             error_message,
-        ) = await self.lightning.create_invoice(amount, "cashu deposit")
+        ) = await self.lightning.create_invoice(amount, "cashu deposit",description_hash)
         return payment_request, checking_id
 
     async def _check_lightning_invoice(self, amount: int, payment_hash: str):
@@ -343,9 +344,10 @@ class Ledger:
         keyset = self.keysets.keysets[keyset_id] if keyset_id else self.keyset
         return {a: p.serialize().hex() for a, p in keyset.public_keys.items()}
 
-    async def request_mint(self, amount):
+    async def request_mint(self, amount, description_hash: Optional[bytes] = None):
         """Returns Lightning invoice and stores it in the db."""
-        payment_request, checking_id = await self._request_lightning_invoice(amount)
+        # description_hash = None
+        payment_request, checking_id = await self._request_lightning_invoice(amount,description_hash)
         invoice = Invoice(
             amount=amount, pr=payment_request, hash=checking_id, issued=False
         )
