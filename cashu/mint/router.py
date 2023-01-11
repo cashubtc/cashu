@@ -4,14 +4,17 @@ from fastapi import APIRouter
 from secp256k1 import PublicKey
 
 from cashu.core.base import (
+    BlindedMessages,
     BlindedSignature,
     CheckFeesRequest,
     CheckFeesResponse,
     CheckRequest,
     GetMeltResponse,
     GetMintResponse,
+    KeysetsResponse,
+    KeysResponse,
     MeltRequest,
-    MintRequest,
+    PostMintResponse,
     PostSplitResponse,
     SplitRequest,
 )
@@ -22,28 +25,31 @@ router: APIRouter = APIRouter()
 
 
 @router.get("/keys")
-async def keys() -> dict[int, str]:
+async def keys() -> KeysResponse:
     """Get the public keys of the mint of the newest keyset"""
     keyset = ledger.get_keyset()
-    return keyset
+    keys = KeysResponse.parse_obj(keyset)
+    return keys
 
 
 @router.get("/keys/{idBase64Urlsafe}")
-async def keyset_keys(idBase64Urlsafe: str) -> dict[int, str]:
+async def keyset_keys(idBase64Urlsafe: str) -> KeysResponse:
     """
-    Get the public keys of the mint of a specificy keyset id.
-    The id is encoded in base64_urlsafe and needs to be converted back to
+    Get the public keys of the mint of a specific keyset id.
+    The id is encoded in idBase64Urlsafe and needs to be converted back to
     normal base64 before it can be processed.
     """
     id = idBase64Urlsafe.replace("-", "+").replace("_", "/")
     keyset = ledger.get_keyset(keyset_id=id)
-    return keyset
+    keys = KeysResponse.parse_obj(keyset)
+    return keys
 
 
 @router.get("/keysets")
-async def keysets() -> dict[str, list[str]]:
-    """Get all active keysets of the mint"""
-    return {"keysets": ledger.keysets.get_ids()}
+async def keysets() -> KeysetsResponse:
+    """Get all active keyset ids of the mint"""
+    keysets = KeysetsResponse(keysets=ledger.keysets.get_ids())
+    return keysets
 
 
 @router.get("/mint")
@@ -62,9 +68,9 @@ async def request_mint(amount: int = 0) -> GetMintResponse:
 
 @router.post("/mint")
 async def mint(
-    mint_request: MintRequest,
+    mint_request: BlindedMessages,
     payment_hash: Union[str, None] = None,
-) -> Union[List[BlindedSignature], CashuError]:
+) -> Union[PostMintResponse, CashuError]:
     """
     Requests the minting of tokens belonging to a paid payment request.
 
@@ -74,9 +80,10 @@ async def mint(
         promises = await ledger.mint(
             mint_request.blinded_messages, payment_hash=payment_hash
         )
-        return promises
+        blinded_signatures = PostMintResponse(promises=promises)
+        return blinded_signatures
     except Exception as exc:
-        return CashuError(error=str(exc))
+        return CashuError(code=0, error=str(exc))
 
 
 @router.post("/melt")
@@ -103,7 +110,7 @@ async def check_fees(payload: CheckFeesRequest) -> CheckFeesResponse:
     This is can be useful for checking whether an invoice is internal (Cashu-to-Cashu).
     """
     fees_msat = await ledger.check_fees(payload.pr)
-    return CheckFeesResponse(fee=fees_msat / 1000)
+    return CheckFeesResponse(fee=fees_msat // 1000)
 
 
 @router.post("/split")
@@ -124,9 +131,9 @@ async def split(
     try:
         split_return = await ledger.split(proofs, amount, outputs)
     except Exception as exc:
-        return CashuError(error=str(exc))
+        return CashuError(code=0, error=str(exc))
     if not split_return:
-        return CashuError(error="there was an error with the split")
+        return CashuError(code=0, error="there was an error with the split")
     frst_promises, scnd_promises = split_return
     resp = PostSplitResponse(fst=frst_promises, snd=scnd_promises)
     return resp

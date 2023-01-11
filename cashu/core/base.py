@@ -67,8 +67,20 @@ class BlindedSignature(BaseModel):
     C_: str
 
 
-class MintRequest(BaseModel):
+class KeysResponse(BaseModel):
+    __root__: Dict[str, str]
+
+
+class KeysetsResponse(BaseModel):
+    keysets: list[str]
+
+
+class BlindedMessages(BaseModel):
     blinded_messages: List[BlindedMessage] = []
+
+
+class PostMintResponse(BaseModel):
+    promises: List[BlindedSignature] = []
 
 
 class GetMintResponse(BaseModel):
@@ -85,9 +97,9 @@ class SplitRequest(BaseModel):
     proofs: List[Proof]
     amount: int
     output_data: Union[
-        MintRequest, None
+        BlindedMessages, None
     ] = None  # backwards compatibility with clients < v0.2.2
-    outputs: Union[MintRequest, None] = None
+    outputs: Union[BlindedMessages, None] = None
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -129,17 +141,17 @@ class KeyBase(BaseModel):
 
 
 class WalletKeyset:
-    id: str
-    public_keys: Dict[int, PublicKey]
+    id: Union[str, None]
+    public_keys: Union[Dict[int, PublicKey], None]
     mint_url: Union[str, None] = None
     valid_from: Union[str, None] = None
     valid_to: Union[str, None] = None
     first_seen: Union[str, None] = None
-    active: bool = True
+    active: Union[bool, None] = True
 
     def __init__(
         self,
-        pubkeys: Dict[int, PublicKey] = None,
+        public_keys=None,
         mint_url=None,
         id=None,
         valid_from=None,
@@ -153,20 +165,20 @@ class WalletKeyset:
         self.first_seen = first_seen
         self.active = active
         self.mint_url = mint_url
-        if pubkeys:
-            self.public_keys = pubkeys
+        if public_keys:
+            self.public_keys = public_keys
             self.id = derive_keyset_id(self.public_keys)
 
 
 class MintKeyset:
-    id: str
+    id: Union[str, None]
     derivation_path: str
     private_keys: Dict[int, PrivateKey]
-    public_keys: Dict[int, PublicKey] = {}
+    public_keys: Union[Dict[int, PublicKey], None] = None
     valid_from: Union[str, None] = None
     valid_to: Union[str, None] = None
     first_seen: Union[str, None] = None
-    active: bool = True
+    active: Union[bool, None] = True
     version: Union[str, None] = None
 
     def __init__(
@@ -194,13 +206,14 @@ class MintKeyset:
     def generate_keys(self, seed):
         """Generates keys of a keyset from a seed."""
         self.private_keys = derive_keys(seed, self.derivation_path)
-        self.public_keys = derive_pubkeys(self.private_keys)
-        self.id = derive_keyset_id(self.public_keys)
+        self.public_keys = derive_pubkeys(self.private_keys)  # type: ignore
+        self.id = derive_keyset_id(self.public_keys)  # type: ignore
 
     def get_keybase(self):
+        assert self.id is not None
         return {
             k: KeyBase(id=self.id, amount=k, pubkey=v.serialize().hex())
-            for k, v in self.public_keys.items()
+            for k, v in self.public_keys.items()  # type: ignore
         }
 
 
@@ -208,7 +221,7 @@ class MintKeysets:
     keysets: Dict[str, MintKeyset]
 
     def __init__(self, keysets: List[MintKeyset]):
-        self.keysets: Dict[str, MintKeyset] = {k.id: k for k in keysets}
+        self.keysets = {k.id: k for k in keysets}  # type: ignore
 
     def get_ids(self):
         return [k for k, _ in self.keysets.items()]

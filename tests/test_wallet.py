@@ -68,8 +68,8 @@ async def test_get_keyset(wallet1: Wallet):
 
 
 @pytest.mark.asyncio
-async def test_get_keysets(wallet1: Wallet):
-    keyset = await wallet1._get_keysets(wallet1.url)
+async def test_get_keyset_ids(wallet1: Wallet):
+    keyset = await wallet1._get_keyset_ids(wallet1.url)
     assert type(keyset) == dict
     assert type(keyset["keysets"]) == list
     assert len(keyset["keysets"]) > 0

@@ -19,7 +19,7 @@ async def verify_mints(ctx, dtoken):
                 mint_url, os.path.join(CASHU_DIR, ctx.obj["WALLET_NAME"])
             )
             # make sure that this mint supports this keyset
-            mint_keysets = await keyset_wallet._get_keysets(mint_url)
+            mint_keysets = await keyset_wallet._get_keyset_ids(mint_url)
             assert keyset in mint_keysets["keysets"], "mint does not have this keyset."
 
             # we validate the keyset id by fetching the keys from the mint
@@ -119,6 +119,7 @@ async def get_mint_wallet(ctx):
     mint_keysets: WalletKeyset = await get_keyset(mint_url=mint_url, db=mint_wallet.db)  # type: ignore
 
     # load the keys
+    assert mint_keysets.id
     await mint_wallet.load_mint(keyset_id=mint_keysets.id)
 
     return mint_wallet
@@ -161,7 +162,7 @@ async def proofs_to_token(wallet, proofs, url: str):
     # check whether we know the mint urls for these proofs
     for k in keysets:
         ks = await get_keyset(id=k, db=wallet.db)
-        url = ks.mint_url if ks is not None else None
+        url = ks.mint_url if ks and ks.mint_url else ""
 
     url = url or (
         input(f"Enter mint URL (press enter for default {MINT_URL}): ") or MINT_URL

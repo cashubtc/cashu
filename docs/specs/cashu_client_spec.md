@@ -52,8 +52,8 @@ Here we see how `Alice` generates `N` blinded messages `T_i`. The following step
 - `Alice` remembers `r` for the construction of the proof in Step 5.
 
 ### Step 4: Request tokens
-- `Alice` constructs JSON `MintRequest = {"blinded_messages" : ["amount" : <amount>, "B_" : <blinded_message>] }` [NOTE: rename "blinded_messages", rename "B_", rename "MintRequest"] 
-- `Alice` requests tokens via `POST /mint?payment_hash=<payment_hash>` with body `MintRequest` [NOTE: rename MintRequest]
+- `Alice` constructs JSON `BlindedMessages = {"blinded_messages" : ["amount" : <amount>, "B_" : <blinded_message>] }` [NOTE: rename "blinded_messages", rename "B_", rename "BlindedMessages"] 
+- `Alice` requests tokens via `POST /mint?payment_hash=<payment_hash>` with body `BlindedMessages` [NOTE: rename BlindedMessages]
 - `Alice` receives from `Bob` a list of blinded signatures `List[BlindedSignature]`, one for each token, e.g. `[{"amount" : <amount>, "C_" : <blinded_signature>}, ...]` [NOTE: rename C_]
 - If an error occured, `Alice` receives JSON `{"error" : <error_reason>}}`[*TODO: Specify case of error*]
 
@@ -121,5 +121,5 @@ Here we describe how `Alice` can request from `Bob` to make a Lightning payment 
 
 # Todo:
 - Call subsections 1. and 1.2 etc so they can be referenced
-- Define objets like `MintRequest` and `SplitRequests` once when they appear and reuse them.
+- Define objets like `BlindedMessages` and `SplitRequests` once when they appear and reuse them.
 - Clarify whether a `TOKEN` is a single Proof or a list of Proofs
